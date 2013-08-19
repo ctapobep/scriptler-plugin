@@ -11,6 +11,7 @@ import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.ParametersAction;
 import hudson.model.Project;
+import hudson.remoting.Callable;
 import hudson.security.Permission;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
@@ -37,9 +38,7 @@ import org.jenkinsci.plugins.scriptler.ScriptlerManagment;
 import org.jenkinsci.plugins.scriptler.config.Parameter;
 import org.jenkinsci.plugins.scriptler.config.Script;
 import org.jenkinsci.plugins.scriptler.config.ScriptlerConfiguration;
-import org.jenkinsci.plugins.scriptler.util.GroovyScript;
-import org.jenkinsci.plugins.scriptler.util.ScriptHelper;
-import org.jenkinsci.plugins.scriptler.util.UIHelper;
+import org.jenkinsci.plugins.scriptler.util.*;
 import org.jenkinsci.plugins.tokenmacro.TokenMacro;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.bind.JavaScriptMethod;
@@ -109,11 +108,14 @@ public class ScriptlerBuilder extends Builder implements Serializable {
                     expandedParams.add(new Parameter(parameter.getName(), TokenMacro.expandAll(build, listener, parameter.getValue())));
                 }
                 final Object output;
+                Callable<Object,RuntimeException> executableScript = ExecutableScript.withScriptInfo(script)
+                        .withParams(expandedParams).withLauncher(launcher)
+                        .withListener(listener).withBuild(build).build();
                 if (script.onlyMaster) {
                     // When run on master, make build, launcher, listener available to script
-                    output = MasterComputer.localChannel.call(new GroovyScript(script.script, expandedParams.toArray(new Parameter[expandedParams.size()]), true, listener, launcher, build));
+                    output = MasterComputer.localChannel.call(executableScript);
                 } else {
-                    output = launcher.getChannel().call(new GroovyScript(script.script, expandedParams.toArray(new Parameter[expandedParams.size()]), true, listener));
+                    output = launcher.getChannel().call(executableScript);
                 }
                 if (output instanceof Boolean && Boolean.FALSE.equals(output)) {
                     isOk = false;

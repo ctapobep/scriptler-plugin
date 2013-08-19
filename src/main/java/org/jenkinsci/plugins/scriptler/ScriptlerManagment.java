@@ -24,29 +24,14 @@
 package org.jenkinsci.plugins.scriptler;
 
 import hudson.Extension;
-import hudson.Util;
 import hudson.PluginWrapper;
-import hudson.model.ManagementLink;
-import hudson.model.RootAction;
+import hudson.Util;
 import hudson.model.ComputerSet;
 import hudson.model.Hudson;
+import hudson.model.ManagementLink;
+import hudson.model.RootAction;
 import hudson.security.Permission;
-
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.Writer;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
-import java.util.logging.Logger;
-
-import javax.servlet.ServletException;
-
 import jenkins.model.Jenkins;
-
 import org.apache.commons.fileupload.FileItem;
 import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.plugins.scriptler.config.Parameter;
@@ -58,16 +43,23 @@ import org.jenkinsci.plugins.scriptler.share.ScriptInfo;
 import org.jenkinsci.plugins.scriptler.share.ScriptInfoCatalog;
 import org.jenkinsci.plugins.scriptler.util.ScriptHelper;
 import org.jenkinsci.plugins.scriptler.util.UIHelper;
-import org.kohsuke.stapler.ForwardToView;
-import org.kohsuke.stapler.HttpRedirect;
-import org.kohsuke.stapler.HttpResponse;
-import org.kohsuke.stapler.QueryParameter;
-import org.kohsuke.stapler.StaplerRequest;
-import org.kohsuke.stapler.StaplerResponse;
+import org.kohsuke.stapler.*;
+
+import javax.servlet.ServletException;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.Writer;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.List;
+import java.util.logging.Logger;
 
 /**
  * Creates the link on the "manage Jenkins" page and handles all the web requests.
- * 
+ *
  * @author Dominik Bartholdi (imod)
  */
 @Extension
@@ -147,17 +139,11 @@ public class ScriptlerManagment extends ManagementLink implements RootAction {
 
     /**
      * save the scriptler 'global' settings (on settings screen, not global Jenkins config)
-     * 
-     * @param res
-     * @param rsp
-     * @param disableRemoteCatalog
-     * @param allowRunScriptPermission
-     * @param allowRunScriptEdit
-     * @return
+     *
      * @throws IOException
      */
     public HttpResponse doScriptlerSettings(StaplerRequest res, StaplerResponse rsp, @QueryParameter("disableRemoteCatalog") boolean disableRemoteCatalog, @QueryParameter("allowRunScriptPermission") boolean allowRunScriptPermission,
-            @QueryParameter("allowRunScriptEdit") boolean allowRunScriptEdit) throws IOException {
+                                            @QueryParameter("allowRunScriptEdit") boolean allowRunScriptEdit) throws IOException {
         checkPermission(Hudson.ADMINISTER);
 
         ScriptlerConfiguration cfg = getConfiguration();
@@ -171,15 +157,11 @@ public class ScriptlerManagment extends ManagementLink implements RootAction {
 
     /**
      * Downloads a script from a catalog and imports it to the local system.
-     * 
-     * @param res
-     *            request
-     * @param rsp
-     *            response
-     * @param id
-     *            the id of the file to be downloaded
-     * @param catalogName
-     *            the catalog to download the file from
+     *
+     * @param req         request
+     * @param rsp         response
+     * @param id          the id of the file to be downloaded
+     * @param catalogName the catalog to download the file from
      * @return same forward as from <code>doScriptAdd</code>
      * @throws IOException
      * @throws ServletException
@@ -203,7 +185,7 @@ public class ScriptlerManagment extends ManagementLink implements RootAction {
 
                 Parameter[] parameters = paramList.toArray(new Parameter[paramList.size()]);
 
-                final String finalName = saveScriptAndForward(id, info.getName(), info.getComment(), source, false, false, catalogName, id, parameters);
+                final String finalName = saveScriptAndForward(id, info.getName(), info.getComment(), info.getInterpreter(), source, false, false, catalogName, id, parameters);
                 return new HttpRedirect("editScript?id=" + finalName);
             }
         }
@@ -215,52 +197,48 @@ public class ScriptlerManagment extends ManagementLink implements RootAction {
 
     /**
      * Saves a script snipplet as file to the system.
-     * 
-     * @param req
-     *            response
-     * @param rsp
-     *            request
-     * @param id
-     *            the script id (fileName)
-     * @param name
-     *            the name of the script
-     * @param comment
-     *            a comment
-     * @param script
-     *            script code
-     * @param catalogName
-     *            (optional) the name of the catalog the script is loaded/added from
-     * @param originId
-     *            (optional) the original id the script had at the catalog
-     * @return forward to 'index'
+     *
+     * @param req         response
+     * @param rsp         request
+     * @param id          the script id (fileName)
+     * @param name        the name of the script
+     * @param comment     a comment
+     * @param script      script code
+     * @param originCatalogName (optional) the name of the catalog the script is loaded/added from
+     * @param originId    (optional) the original id the script had at the catalog
      * @throws IOException
      * @throws ServletException
      */
-    public HttpResponse doScriptAdd(StaplerRequest req, StaplerResponse rsp, @QueryParameter("id") String id, @QueryParameter("name") String name, @QueryParameter("comment") String comment, @QueryParameter("script") String script,
-            @QueryParameter("nonAdministerUsing") boolean nonAdministerUsing, @QueryParameter("onlyMaster") boolean onlyMaster, String originCatalogName, String originId) throws IOException, ServletException {
+    public HttpResponse doScriptAdd(StaplerRequest req, StaplerResponse rsp, @QueryParameter("id") String id,
+                                    @QueryParameter("name") String name, @QueryParameter("comment") String comment,
+                                    @QueryParameter("script") String script, @QueryParameter("interpreter") String interpreter,
+                                    @QueryParameter("nonAdministerUsing") boolean nonAdministerUsing,
+                                    @QueryParameter("onlyMaster") boolean onlyMaster, String originCatalogName, String originId) throws IOException, ServletException {
 
         checkPermission(Hudson.ADMINISTER);
 
         Parameter[] parameters = UIHelper.extractParameters(req.getSubmittedForm());
 
-        saveScriptAndForward(id, name, comment, script, nonAdministerUsing, onlyMaster, originCatalogName, originId, parameters);
+        saveScriptAndForward(id, name, comment, interpreter, script, nonAdministerUsing, onlyMaster, originCatalogName, originId, parameters);
         return new HttpRedirect("index");
     }
 
     /**
      * Save the script details and return the forward to index
-     * 
+     *
      * @return the final name of the saved script - which is also the id of the script!
      * @throws IOException
      */
-    private String saveScriptAndForward(String id, String name, String comment, String script, boolean nonAdministerUsing, boolean onlyMaster, String originCatalogName, String originId, Parameter[] parameters) throws IOException {
+    private String saveScriptAndForward(String id, String name, String comment, String interpreter, String script,
+                                        boolean nonAdministerUsing, boolean onlyMaster, String originCatalogName,
+                                        String originId, Parameter[] parameters) throws IOException {
         script = script == null ? "TODO" : script;
         if (StringUtils.isEmpty(id)) {
             throw new IllegalArgumentException("'id' must not be empty!");
         }
 
         final String displayName = name == null ? id : name;
-        final String finalFileName = fixFileName(originCatalogName, id);
+        final String finalFileName = fixFileName(id);
 
         // save (overwrite) the file/script
         File newScriptFile = new File(getScriptDirectory(), finalFileName);
@@ -270,12 +248,12 @@ public class ScriptlerManagment extends ManagementLink implements RootAction {
 
         commitFileToGitRepo(finalFileName);
 
-        Script newScript = null;
+        Script newScript;
         if (!StringUtils.isEmpty(originId)) {
-            newScript = new Script(finalFileName, displayName, comment, true, originCatalogName, originId, new SimpleDateFormat("dd MMM yyyy HH:mm:ss a").format(new Date()), parameters);
+            newScript = new Script(finalFileName, displayName, comment, interpreter, true, originCatalogName, originId, new SimpleDateFormat("dd MMM yyyy HH:mm:ss a").format(new Date()), parameters);
         } else {
             // save (overwrite) the meta information
-            newScript = new Script(finalFileName, displayName, comment, nonAdministerUsing, parameters, onlyMaster);
+            newScript = new Script(finalFileName, displayName, comment, interpreter, nonAdministerUsing, parameters, onlyMaster);
         }
         ScriptlerConfiguration cfg = getConfiguration();
         cfg.addOrReplace(newScript);
@@ -285,7 +263,7 @@ public class ScriptlerManagment extends ManagementLink implements RootAction {
 
     /**
      * adds/commits the given file to the local git repo - file must be written to scripts directory!
-     * 
+     *
      * @param finalFileName
      * @throws IOException
      */
@@ -303,6 +281,7 @@ public class ScriptlerManagment extends ManagementLink implements RootAction {
 
     /**
      * Triggers a hard reset on the git repo
+     *
      * @return redirects to the repo entry page at <code>http://jenkins.orga.com/scriptler.git</code>
      * @throws IOException
      */
@@ -314,13 +293,9 @@ public class ScriptlerManagment extends ManagementLink implements RootAction {
 
     /**
      * Removes a script from the config and filesystem.
-     * 
-     * @param res
-     *            response
-     * @param rsp
-     *            request
-     * @param name
-     *            the name of the file to be removed
+     *
+     * @param res  response
+     * @param rsp  request
      * @return forward to 'index'
      * @throws IOException
      */
@@ -348,9 +323,8 @@ public class ScriptlerManagment extends ManagementLink implements RootAction {
 
     /**
      * Uploads a script and stores it with the given filename to the configuration. It will be stored on the filessytem.
-     * 
-     * @param req
-     *            request
+     *
+     * @param req request
      * @return forward to index page.
      * @throws IOException
      * @throws ServletException
@@ -358,15 +332,15 @@ public class ScriptlerManagment extends ManagementLink implements RootAction {
     public HttpResponse doUploadScript(StaplerRequest req) throws IOException, ServletException {
         checkPermission(Hudson.ADMINISTER);
         try {
-            
-
+            //this will throw if interpreter was not selected. form validation should be added in the future
+            String interpreter = req.getSubmittedForm().getString("interpreter");
             FileItem fileItem = req.getFileItem("file");
             boolean nonAdministerUsing = req.getSubmittedForm().getBoolean("nonAdministerUsing");
             String fileName = Util.getFileName(fileItem.getName());
             if (StringUtils.isEmpty(fileName)) {
                 return new HttpRedirect(".");
             }
-            saveScript(fileItem, nonAdministerUsing, fileName);
+            saveScript(fileItem, nonAdministerUsing, fileName, interpreter);
 
             return new HttpRedirect("index");
         } catch (IOException e) {
@@ -376,23 +350,21 @@ public class ScriptlerManagment extends ManagementLink implements RootAction {
         }
     }
 
-    /**
-     * Protected only for testing
-     */
-    /*private*/ void saveScript(FileItem fileItem, boolean nonAdministerUsing, String fileName) throws Exception, IOException {
+    /** Protected only for testing */
+    /*private*/ void saveScript(FileItem fileItem, boolean nonAdministerUsing, String fileName, String interpreter) throws Exception {
         // upload can only be to/from local catalog
-        fileName = fixFileName(null, fileName);
+        fileName = fixFileName(fileName);
 
         File rootDir = getScriptDirectory();
         final File f = new File(rootDir, fileName);
-        
+
         fileItem.write(f);
 
         commitFileToGitRepo(fileName);
 
         Script script = ScriptHelper.getScript(fileName, false);
         if (script == null) {
-            script = new Script(fileName, fileName, true, nonAdministerUsing, false);
+            script = new Script(fileName, fileName, interpreter, true, nonAdministerUsing, false);
         }
         ScriptlerConfiguration config = getConfiguration();
         config.addOrReplace(script);
@@ -400,13 +372,9 @@ public class ScriptlerManagment extends ManagementLink implements RootAction {
 
     /**
      * Display the screen to trigger a script. The source of the script get loaded from the filesystem and placed in the request to display it on the page before execution.
-     * 
-     * @param req
-     *            request
-     * @param rsp
-     *            response
-     * @param scriptName
-     *            the name of the script to be executed
+     *
+     * @param req        request
+     * @param rsp        response
      * @throws IOException
      * @throws ServletException
      */
@@ -428,27 +396,21 @@ public class ScriptlerManagment extends ManagementLink implements RootAction {
      * Trigger/run/execute the script on a slave and show the result/output. The request then gets forward to <code>runscript.jelly</code> (This is usually also where the request came from). The
      * script passed to this method gets restored in the request again (and not loaded from the system). This way one is able to modify the script before execution and reuse the modified version for
      * further executions.
-     * 
-     * @param req
-     *            request
-     * @param rsp
-     *            response
-     * @param scriptName
-     *            the name of the script
-     * @param scriptSrc
-     *            the script code (groovy)
-     * @param node
-     *            the node, to execute the code on.
+     *
+     * @param req        request
+     * @param rsp        response
+     * @param scriptSrc  the script code (groovy)
+     * @param node       the node, to execute the code on.
      * @throws IOException
      * @throws ServletException
      */
-    public void doTriggerScript(StaplerRequest req, StaplerResponse rsp, @QueryParameter("id") String id, @QueryParameter("script") String scriptSrc, @QueryParameter("node") String node) throws IOException, ServletException {
-
+    public void doTriggerScript(StaplerRequest req, StaplerResponse rsp, @QueryParameter("id") String id,
+                                @QueryParameter("script") String scriptSrc, @QueryParameter("node") String node) throws IOException, ServletException {
         checkPermission(getRequiredPermissionForRunScript());
 
         final Parameter[] parameters = UIHelper.extractParameters(req.getSubmittedForm());
 
-        Script tempScript = null;
+        Script tempScript;
         final boolean isAdmin = Jenkins.getInstance().getACL().hasPermission(Jenkins.ADMINISTER);
         final boolean isChangeScriptAllowed = isAdmin || allowRunScriptEdit();
 
@@ -463,10 +425,10 @@ public class ScriptlerManagment extends ManagementLink implements RootAction {
             tempScript.setScript(scriptSrc);
         }
 
-        final String[] slaves = resolveSlaveNames(node);
-        String output = ScriptHelper.runScript(slaves, scriptSrc, parameters);
+        tempScript.setParameters(parameters);
+        String[] slaves = resolveSlaveNames(node);
+        String output = ScriptHelper.runScript(slaves, tempScript);
 
-        tempScript.setParameters(parameters);// show the same parameters to the user
         req.setAttribute("script", tempScript);
         req.setAttribute("currentNode", node);
         req.setAttribute("output", output);
@@ -495,13 +457,9 @@ public class ScriptlerManagment extends ManagementLink implements RootAction {
 
     /**
      * Loads the script by its name and forwards the request to "show.jelly".
-     * 
-     * @param req
-     *            request
-     * @param rsp
-     *            response
-     * @param scriptName
-     *            the name of the script to be loaded in to the show view.
+     *
+     * @param req        request
+     * @param rsp        response
      * @throws IOException
      * @throws ServletException
      */
@@ -515,13 +473,9 @@ public class ScriptlerManagment extends ManagementLink implements RootAction {
 
     /**
      * Loads the script by its name and forwards the request to "edit.jelly".
-     * 
-     * @param req
-     *            request
-     * @param rsp
-     *            response
-     * @param scriptName
-     *            the name of the script to be loaded in to the edit view.
+     *
+     * @param req        request
+     * @param rsp        response
      * @throws IOException
      * @throws ServletException
      */
@@ -535,7 +489,7 @@ public class ScriptlerManagment extends ManagementLink implements RootAction {
 
     /**
      * Gets the names of all configured slaves, regardless whether they are online, including alias of ALL and ALL_SLAVES
-     * 
+     *
      * @return list with all slave names
      */
     public List<String> getSlaveAlias(Script script) {
@@ -573,7 +527,7 @@ public class ScriptlerManagment extends ManagementLink implements RootAction {
 
     /**
      * Gets the remote catalogs containing the available scripts for download.
-     * 
+     *
      * @return the catalog
      */
     public List<ScriptInfoCatalog> getCatalogs() {
@@ -606,7 +560,7 @@ public class ScriptlerManagment extends ManagementLink implements RootAction {
 
     /**
      * returns the directory where the script files get stored
-     * 
+     *
      * @return the script directory
      */
     public static File getScriptDirectory() {
@@ -621,13 +575,7 @@ public class ScriptlerManagment extends ManagementLink implements RootAction {
         Hudson.getInstance().checkPermission(permission);
     }
 
-    private String fixFileName(String catalogName, String name) {
-        if (!name.endsWith(".groovy")) {
-            if (!StringUtils.isEmpty(catalogName)) {
-                name += "." + catalogName;
-            }
-            name += ".groovy";
-        }
+    private String fixFileName(String name) {
         // make sure we don't have spaces in the filename
         name = name.replace(" ", "_").trim();
         LOGGER.fine("set file name to: " + name);

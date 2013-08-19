@@ -26,8 +26,8 @@ THE SOFTWARE.
 
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define"
 	xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
-	
-	<l:layout norefresh="true">
+
+	<l:layout norefresh="true" title="">
 		<st:include page="sidepanel.jelly" />
 		<l:main-panel>
 			<h1>
@@ -35,7 +35,7 @@ THE SOFTWARE.
 				<img width="16" height="16" src="${imagesURL}/16x16/empty.gif" />
 				<j:out value="${%title}" />
 			</h1>
-			<f:form method="post" action="scriptAdd">
+			<f:form method="post" action="scriptAdd" name="">
 				<j:jelly xmlns:j="jelly:core">
 				    <f:entry title="${%Id}" description="${%IdDescription}">
                         <f:textbox name="id" value="${script.id}" />
@@ -52,6 +52,13 @@ THE SOFTWARE.
                     <f:entry title="${%Restriction}" description="${%RestrictionDescription}">
                         <f:checkbox name="onlyMaster" checked="${script.onlyMaster}" />
 		            </f:entry>
+                    <f:section title="${%Interpreter}">
+                        <f:entry description="${%InterpreterDescription}">
+                            <f:radio title="Shebang" checked="${script.interpreter == 'shebang'}" name="interpreter" value="shebang"/>
+                            <f:radio title="Groovy" checked="${script.interpreter == 'groovy' or script.interpreter==null}" name="interpreter" value="groovy"/>
+                        </f:entry>
+                    </f:section>
+
                     <f:block>
 	                    <table>
 	                        <f:optionalBlock name="defineParams" title="${%ParametersDescription}" checked="${!empty(script.parameters)}">
@@ -69,7 +76,7 @@ THE SOFTWARE.
 	                            </f:entry>
 	                        </f:optionalBlock>
 	                    </table>
-	                </f:block>					
+	                </f:block>
 					<f:entry title="${%Script}">
 						<textarea id="script" name="script" class="script">
 							<j:out value="${script.script}" />

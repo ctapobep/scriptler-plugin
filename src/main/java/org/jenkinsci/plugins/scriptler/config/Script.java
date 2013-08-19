@@ -23,9 +23,21 @@
  */
 package org.jenkinsci.plugins.scriptler.config;
 
+import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 public class Script implements Comparable<Script>, NamedResource {
+    public enum Interpreter {
+        GROOVY, SHEBANG;
+
+        public static Interpreter parse(String readableName) {
+            if (StringUtils.isEmpty(readableName)) {
+                return Script.Interpreter.GROOVY;
+            } else {
+                return Script.Interpreter.valueOf(readableName.toUpperCase());
+            }
+        }
+    }
 
     private String id;
     public final String name;
@@ -33,13 +45,16 @@ public class Script implements Comparable<Script>, NamedResource {
     public final String originCatalog;
     public final String originScript;
     public final String originDate;
+    /**
+     * Defines whether a groovy interpreter should be used or the interpreter is defined by
+     * <a href="http://en.wikipedia.org/wiki/Shebang_(Unix)">shebang</a> in the start of the script body.
+     */
+    public String interpreter;
     private Parameter[] parameters;
 
     public boolean available = true;
 
-    /**
-     * script is only transient, because it will not be saved in the xml but on the file system. Therefore it has to be materialized before usage!
-     */
+    /** script is only transient, because it will not be saved in the xml but on the file system. Therefore it has to be materialized before usage! */
     public transient String script;
 
     // for user with RUN_SCRIPT permission
@@ -48,43 +63,33 @@ public class Script implements Comparable<Script>, NamedResource {
     // script is runnable only on Master
     public final boolean onlyMaster;
 
-    /**
-     * used to create/update a new script in the UI
-     */
+    /** used to create/update a new script in the UI */
     @DataBoundConstructor
-    public Script(String id, String name, String comment, boolean nonAdministerUsing, Parameter[] parameters, boolean onlyMaster) {
-        this(id, name, comment, null, null, null, nonAdministerUsing, parameters, onlyMaster);
+    public Script(String id, String name, String comment, String interpreter, boolean nonAdministerUsing, Parameter[] parameters, boolean onlyMaster) {
+        this(id, name, comment, interpreter, null, null, null, nonAdministerUsing, parameters, onlyMaster);
     }
 
-    /**
-     * used during plugin start to synchronize available scripts
-     */
-    public Script(String id, String comment, boolean available, boolean nonAdministerUsing, boolean onlyMaster) {
-        this(id, id, comment, null, null, null, nonAdministerUsing, null, false);
+    /** used during plugin start to synchronize available scripts */
+    public Script(String id, String comment, String interpreter, boolean available, boolean nonAdministerUsing, boolean onlyMaster) {
+        this(id, id, comment, interpreter, null, null, null, nonAdministerUsing, null, false);
     }
 
-    /**
-     * Constructor to create a script imported from a foreign catalog.
-     * 
-     */
-    public Script(String id, String name, String comment, boolean available, String originCatalog, String originScript, String originDate, Parameter[] parameters) {
-        this(id, name, comment, originCatalog, originScript, originDate, false, parameters, false);
+    /** Constructor to create a script imported from a foreign catalog. */
+    public Script(String id, String name, String comment, String interpreter, boolean available, String originCatalog, String originScript, String originDate, Parameter[] parameters) {
+        this(id, name, comment, interpreter, originCatalog, originScript, originDate, false, parameters, false);
     }
 
-    /**
-     * used to merge scripts
-     */
-    public Script(String id, String name, String comment, boolean available, String originCatalog, String originScript, String originDate, boolean nonAdministerUsing, Parameter[] parameters, boolean onlyMaster) {
-        this(id, name, comment, originCatalog, originScript, originDate, nonAdministerUsing, parameters, onlyMaster);
+    /** used to merge scripts */
+    public Script(String id, String name, String comment, String interpreter, boolean available, String originCatalog, String originScript, String originDate, boolean nonAdministerUsing, Parameter[] parameters, boolean onlyMaster) {
+        this(id, name, comment, interpreter, originCatalog, originScript, originDate, nonAdministerUsing, parameters, onlyMaster);
     }
 
-    /**
-     * used to merge scripts
-     */
-    public Script(String id, String name, String comment, String originCatalog, String originScript, String originDate, boolean nonAdministerUsing, Parameter[] parameters, boolean onlyMaster) {
+    /** used to merge scripts */
+    public Script(String id, String name, String comment, String interpreter, String originCatalog, String originScript, String originDate, boolean nonAdministerUsing, Parameter[] parameters, boolean onlyMaster) {
         this.id = id;
         this.name = name;
         this.comment = comment;
+        this.interpreter = StringUtils.defaultIfBlank(interpreter, "groovy");
         this.originCatalog = originCatalog;
         this.originScript = originScript;
         this.originDate = originDate;
@@ -131,9 +136,7 @@ public class Script implements Comparable<Script>, NamedResource {
         return id.compareTo(o.id);
     }
 
-    /**
-     * Previously we used not to have an id, but only a name.
-     */
+    /** Previously we used not to have an id, but only a name. */
     public Object readResolve() {
         if (id == null) {
             id = name;
@@ -141,9 +144,7 @@ public class Script implements Comparable<Script>, NamedResource {
         return this;
     }
 
-    /**
-     * @return the id
-     */
+    /** @return the id */
     public String getId() {
         return id;
     }
@@ -152,9 +153,7 @@ public class Script implements Comparable<Script>, NamedResource {
         return "[Script: " + id + ":" + name + "]";
     }
 
-    /**
-     * @see java.lang.Object#hashCode()
-     */
+    /** @see java.lang.Object#hashCode() */
     @Override
     public int hashCode() {
         final int prime = 31;
@@ -163,9 +162,7 @@ public class Script implements Comparable<Script>, NamedResource {
         return result;
     }
 
-    /**
-     * @see java.lang.Object#equals(java.lang.Object)
-     */
+    /** @see java.lang.Object#equals(java.lang.Object) */
     @Override
     public boolean equals(Object obj) {
         if (this == obj) {

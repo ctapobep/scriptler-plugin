@@ -1,22 +1,18 @@
 package org.jenkinsci.plugins.scriptler;
 
-import java.io.File;
-import java.io.FilenameFilter;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
 import org.apache.commons.io.FileUtils;
 import org.jenkinsci.plugins.scriptler.config.Parameter;
 import org.jenkinsci.plugins.scriptler.config.Script;
 import org.jenkinsci.plugins.scriptler.config.ScriptlerConfiguration;
 import org.jenkinsci.plugins.scriptler.share.ScriptInfo;
 import org.jenkinsci.plugins.scriptler.util.ScriptHelper;
+
+import java.io.File;
+import java.io.FilenameFilter;
+import java.io.IOException;
+import java.util.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class SyncUtil {
 
@@ -26,10 +22,7 @@ public class SyncUtil {
     }
 
     /**
-     * 
-     * @param scriptDirectory
-     * @param cfg
-     *            must be saved (by caller) after finishing this all sync
+     * @param cfg             must be saved (by caller) after finishing this all sync
      * @throws IOException
      */
     public static void syncDirWithCfg(File scriptDirectory, ScriptlerConfiguration cfg) throws IOException {
@@ -47,9 +40,9 @@ public class SyncUtil {
                     for (int i = 0; i < parameters.length; i++) {
                         parameters[i] = new Parameter(paramList.get(i), null);
                     }
-                    cfg.addOrReplace(new Script(file.getName(), info.getName(), info.getComment(), false, parameters, false));
+                    cfg.addOrReplace(new Script(file.getName(), info.getName(), info.getInterpreter(), info.getComment(), false, parameters, false));
                 } else {
-                    cfg.addOrReplace(new Script(file.getName(), file.getName(), Messages.script_loaded_from_directory(), false, null, false));
+                    cfg.addOrReplace(new Script(file.getName(), file.getName(), "groovy", Messages.script_loaded_from_directory(), false, null, false));
                 }
 
             }
@@ -63,7 +56,7 @@ public class SyncUtil {
             if ((new File(scriptDirectory, s.getScriptPath()).exists())) {
                 s.setAvailable(true);
             } else {
-                unavailableScripts.add(new Script(s.getId(), s.comment, false, false, false));
+                unavailableScripts.add(new Script(s.getId(), s.comment, "shebang", false, false, false));
                 LOGGER.info("for repo '" + scriptDirectory.getAbsolutePath() + "' " + s + " is not available!");
             }
         }
@@ -73,9 +66,7 @@ public class SyncUtil {
         }
     }
 
-    /**
-     * search into the declared backup directory for backup archives
-     */
+    /** search into the declared backup directory for backup archives */
     private static List<File> getAvailableScripts(File scriptDirectory) throws IOException {
         LOGGER.log(Level.FINE, "Listing files of {0}", scriptDirectory.getAbsoluteFile());
 

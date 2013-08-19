@@ -11,6 +11,6 @@ public class ScriptlerManagementHelper {
     }
 
     public void saveScript(FileItem file, boolean nonAdministerUsing, String fileName) throws Exception {
-        scriptler.saveScript(file, nonAdministerUsing, fileName);
+        scriptler.saveScript(file, nonAdministerUsing, fileName, "shebang");
     }
 }

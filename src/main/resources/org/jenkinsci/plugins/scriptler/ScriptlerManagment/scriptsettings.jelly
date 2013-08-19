@@ -51,7 +51,13 @@
 				</f:entry>
                 <f:entry title="${%Restriction}" description="${%RestrictionDescription}">
                     <f:checkbox name="onlyMaster" checked="${script.onlyMaster}" />
-		</f:entry>
+		        </f:entry>
+                <f:section title="${%Interpreter}">
+                    <f:entry description="${%InterpreterDescription}">
+                        <f:radio title="Shebang" checked="${script.interpreter == 'shebang'}" name="interpreter" value="shebang"/>
+                        <f:radio title="Groovy" checked="${script.interpreter == 'groovy'}" name="interpreter" value="groovy"/>
+                    </f:entry>
+                </f:section>
 				<f:entry title="${%Script}">
 					<textarea id="script" name="script" class="script">
 					</textarea>
@@ -67,10 +73,16 @@
               </div>
 			<f:form method="post" action="uploadScript" name="uploadScript"
 				enctype="multipart/form-data">
-                                    
-                                <f:entry title="${%Permission}">
+
+                <f:entry title="${%Permission}">
 					<f:checkbox name="nonAdministerUsing" />
 				</f:entry>
+                <f:section title="${%Interpreter}">
+                    <f:entry description="${%InterpreterDescription}">
+                        <f:radio title="Shebang" checked="${script.interpreter == 'shebang'}" name="interpreter" value="shebang"/>
+                        <f:radio title="Groovy" checked="${script.interpreter == 'groovy'}" name="interpreter" value="groovy"/>
+                    </f:entry>
+                </f:section>
 				<f:block>
 					<f:entry title="${File}">
 						<!-- @size is for other browsers, @style is for IE -->

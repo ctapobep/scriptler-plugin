@@ -14,6 +14,7 @@ import jenkins.model.Jenkins;
 
 import org.jenkinsci.plugins.scriptler.Messages;
 import org.jenkinsci.plugins.scriptler.config.Parameter;
+import org.jenkinsci.plugins.scriptler.share.EnvObjects;
 
 /**
  * Inspired by hudson.util.RemotingDiagnostics.Script, but adding parameters.

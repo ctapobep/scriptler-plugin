@@ -45,7 +45,10 @@ THE SOFTWARE.
 				<j:out value="${script.comment}" />
 				<br />
 			</p>
-
+            <p>
+                Interpreter: <j:out value="${script.interpreter}"/>
+                <br />
+            </p>
 			<form action="triggerScript" method="post">
 				<input type="hidden" value="${script.id}" name="id" />
 				<table class="pane">

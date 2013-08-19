@@ -9,6 +9,7 @@ public class ScriptInfo implements NamedResource {
     protected String script;
     protected String comment;
     protected String core;
+    protected String interpreter;
     protected String name;
     protected List<Author> authors;
     protected List<String> parameters;
@@ -42,6 +43,14 @@ public class ScriptInfo implements NamedResource {
 
     public List<Author> getAuthors() {
         return authors == null ? new ArrayList<ScriptInfo.Author>() : authors;
+    }
+
+    public String getInterpreter() {
+        return interpreter;
+    }
+
+    public void setInterpreter(String interpreter) {
+        this.interpreter = interpreter;
     }
 
     @Override
